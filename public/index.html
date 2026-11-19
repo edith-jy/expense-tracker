@@ -15,12 +15,42 @@
       <p>Keep track of shared expenses</p>
     </header>
 
-    <section class="summary">
-      <h2>Outstanding</h2>
-      <p id="outstanding-total">$0.00</p>
-    </section>
 
-    <section class="add-expense">
+<div class="dashboard">
+  <div class="dashboard-left">
+
+    <section class="summary">
+      <h2>Your balance</h2>
+
+      <label for="current-user">Viewing as</label>
+      <select id="current-user">
+        <option value="Josh">Josh</option>
+        <option value="Nicole">Nicole</option>
+        <option value="Trevor">Trevor</option>
+        <option value="Vee">Vee</option>
+        <option value="Lily">Lily</option>
+      </select>
+
+      <div id="personal-balance">
+        Loading balance...
+      </div>
+
+      <div class="individual-balances">
+        <h3>Individual balances</h3>
+        <div id="individual-balances">
+          Loading balances...
+        </div>
+      </div>
+
+      <div class="outstanding-section">
+      <h3>Total outstanding</h3>
+      <p id="outstanding-total">$0.00</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="dashboard-right">
+        <section class="add-expense">
       <h2>Add an expense</h2>
 
       <form id="expense-form">
@@ -28,10 +58,24 @@
         <input type="text" id="description" name="description" maxlength="100" required>
 
         <label for="paid_by">Paid by</label>
-        <input type="text" id="paid_by" name="paid_by" maxlength="50" required>
+        <select id="paid_by" name="paid_by" required>
+          <option value="" disabled selected>Select a name</option>
+          <option value="Josh">Josh</option>
+          <option value="Nicole">Nicole</option>
+          <option value="Trevor">Trevor</option>
+          <option value="Vee">Vee</option>
+          <option value="Lily">Lily</option>
+        </select>
 
         <label for="owed_by">Owed by</label>
-        <input type="text" id="owed_by" name="owed_by" maxlength="50" required>
+        <select id="owed_by" name="owed_by" required>
+          <option value="" disabled selected>Select a name</option>
+          <option value="Josh">Josh</option>
+          <option value="Nicole">Nicole</option>
+          <option value="Trevor">Trevor</option>
+          <option value="Vee">Vee</option>
+          <option value="Lily">Lily</option>
+        </select>
 
         <label for="amount">Amount</label>
         <input type="number" id="amount" name="amount" min="0.01" step="0.01" required>
@@ -50,13 +94,16 @@
       </form>
     </section>
 
+  </div>
+</div>
     <section class="expense-history">
       <h2>Expenses</h2>
       <div id="expenses-list">
         <p>Loading expenses...</p>
       </div>
     </section>
-  </main>
+</main>
+  
   <dialog id="delete-dialog">
   <h2>Delete this expense?</h2>
   <p id="delete-message"></p>
@@ -69,6 +116,7 @@
       Delete
     </button>
   </div>
+</div>
 </dialog>
 </body>
 </html>

@@ -3,13 +3,28 @@ const form = document.querySelector('#expense-form');
 const formMessage = document.querySelector('#form-message');
 const expensesList = document.querySelector('#expenses-list');
 const outstandingTotal = document.querySelector('#outstanding-total');
+const individualBalances = document.querySelector('#individual-balances');
+const currentUser = document.querySelector('#current-user');
+const paidBy = document.querySelector('#paid_by');
+const owedBy = document.querySelector('#owed_by');
+const personalBalance = document.querySelector('#personal-balance');
 const submitButton = form.querySelector('button[type="submit"]');
 const cancelEditButton = document.querySelector('#cancel-edit');
-const fields = [...form.querySelectorAll('input')]; 
+const fields = [...form.querySelectorAll('input, select')];
+function validateParticipants() {
+  const samePerson = paidBy.value && paidBy.value === owedBy.value;
+
+  owedBy.setCustomValidity(
+    samePerson ? 'The person who paid cannot also be the person who owes.' : ''
+  );
+}
+paidBy.addEventListener('change', validateParticipants);
+owedBy.addEventListener('change', validateParticipants);
 const deleteDialog = document.querySelector('#delete-dialog');
 const deleteMessage = document.querySelector('#delete-message');
 const cancelDeleteButton = document.querySelector('#cancel-delete');
 const confirmDeleteButton = document.querySelector('#confirm-delete');
+const users = ['Josh', 'Nicole', 'Trevor', 'Vee', 'Lily'];
 
 let expenseToDelete = null;
 let expenses = [];
@@ -70,11 +85,97 @@ function formatCurrency(amount) {
 }
 
 function updateOutstanding() {
+  const balances = Object.fromEntries(
+    users.map(user => [user, 0])
+  );
+
+  for (const expense of expenses) {
+    if (expense.is_paid) continue;
+
+    balances[expense.paid_by] += Number(expense.amount);
+    balances[expense.owed_by] -= Number(expense.amount);
+  }
+
   const total = expenses
     .filter(expense => !expense.is_paid)
     .reduce((sum, expense) => sum + Number(expense.amount), 0);
 
   outstandingTotal.textContent = formatCurrency(total);
+
+  // Display the selected user's personal balance
+  const selectedBalance = balances[currentUser.value];
+
+  personalBalance.replaceChildren();
+
+  const balanceHeading = document.createElement('p');
+  const balanceAmount = document.createElement('p');
+
+  if (selectedBalance > 0) {
+    balanceHeading.textContent = "You're owed";
+    balanceAmount.textContent = formatCurrency(selectedBalance);
+    balanceAmount.classList.add('owed');
+  } else if (selectedBalance < 0) {
+    balanceHeading.textContent = 'You owe';
+    balanceAmount.textContent = formatCurrency(Math.abs(selectedBalance));
+    balanceAmount.classList.add('owes');
+  } else {
+    balanceHeading.textContent = 'Your balance';
+    balanceAmount.textContent = 'Settled';
+    balanceAmount.classList.add('settled');
+  }
+
+  personalBalance.append(balanceHeading, balanceAmount);
+
+  // Display all individual balances
+// Display balances between the selected user and everyone else
+individualBalances.replaceChildren();
+
+const selectedUser = currentUser.value;
+
+const personalBalances = Object.fromEntries(
+  users
+    .filter(user => user !== selectedUser)
+    .map(user => [user, 0])
+);
+
+for (const expense of expenses) {
+  if (expense.is_paid) continue;
+
+  const amount = Number(expense.amount);
+
+  if (expense.paid_by === selectedUser) {
+    personalBalances[expense.owed_by] += amount;
+  } else if (expense.owed_by === selectedUser) {
+    personalBalances[expense.paid_by] -= amount;
+  }
+}
+
+for (const user of users) {
+  if (user === selectedUser) continue;
+
+  const balance = personalBalances[user];
+  if (balance === 0) continue;
+  const row = document.createElement('p');
+
+  const name = document.createElement('span');
+  name.textContent = user;
+
+  const amount = document.createElement('span');
+
+  if (balance > 0) {
+    amount.textContent = `Owes you ${formatCurrency(balance)}`;
+    amount.classList.add('owed');
+  } else if (balance < 0) {
+    amount.textContent = `You owe ${formatCurrency(Math.abs(balance))}`;
+    amount.classList.add('owes');
+  } else {
+    amount.textContent = 'Settled';
+    amount.classList.add('settled');
+  }
+
+  row.append(name, amount);
+  individualBalances.append(row);
+}
 }
 
 function createExpenseCard(expense) {
@@ -267,3 +368,5 @@ form.addEventListener('submit', async event => {
 
 
 loadExpenses();
+
+currentUser.addEventListener('change', updateOutstanding);
