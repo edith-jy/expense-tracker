@@ -57,7 +57,7 @@
         <label for="description">Description</label>
         <input type="text" id="description" name="description" maxlength="100" required>
 
-        <label for="paid_by">Paid by</label>
+        <label for="paid_by">Who paid?</label>
         <select id="paid_by" name="paid_by" required>
           <option value="" disabled selected>Select a name</option>
           <option value="Josh">Josh</option>
@@ -67,15 +67,22 @@
           <option value="Lily">Lily</option>
         </select>
 
-        <label for="owed_by">Owed by</label>
-        <select id="owed_by" name="owed_by" required>
-          <option value="" disabled selected>Select a name</option>
-          <option value="Josh">Josh</option>
-          <option value="Nicole">Nicole</option>
-          <option value="Trevor">Trevor</option>
-          <option value="Vee">Vee</option>
-          <option value="Lily">Lily</option>
-        </select>
+        <fieldset class="participant-selection">
+          <legend>Who was paid for?</legend>
+
+          <div id="owed-by-options">
+            <label><input type="checkbox" name="owed_by" value="Josh"> Josh</label>
+            <label><input type="checkbox" name="owed_by" value="Nicole"> Nicole</label>
+            <label><input type="checkbox" name="owed_by" value="Trevor"> Trevor</label>
+            <label><input type="checkbox" name="owed_by" value="Vee"> Vee</label>
+            <label><input type="checkbox" name="owed_by" value="Lily"> Lily</label>
+          </div>
+        </fieldset>
+
+        <label class="payer-toggle">
+          <input type="checkbox" id="include-payer" checked>
+          Include the person who paid?
+        </label>
 
         <label for="amount">Amount</label>
         <input type="number" id="amount" name="amount" min="0.01" step="0.01" required>

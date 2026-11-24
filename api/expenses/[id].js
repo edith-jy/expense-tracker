@@ -7,6 +7,7 @@ function getExpenseId(request) {
   return new URL(request.url).pathname.split('/').pop();
 }
 
+
 // Update an entire expense
 export async function PUT(request) {
   try {
@@ -15,18 +16,75 @@ export async function PUT(request) {
 
     await connectDatabase();
 
+    const updates = {
+      description: body.description,
+      paid_by: body.paid_by,
+      amount: body.amount,
+      date: body.date
+    };
+
+    const updateOperation = { $set: updates };
+
+    if (Array.isArray(body.participants)) {
+      // Validate participant information
+      if (
+        body.participants.length === 0 ||
+        body.participants.some(person =>
+          !person ||
+          typeof person.name !== 'string' ||
+          !person.name.trim() ||
+          !Number.isFinite(Number(person.share)) ||
+          Number(person.share) <= 0 ||
+          typeof person.is_paid !== 'boolean'
+        )
+      ) {
+        return Response.json(
+          { error: 'Invalid participant information.' },
+          { status: 400 }
+        );
+      }
+
+      const names = body.participants.map(person => person.name);
+
+      if (new Set(names).size !== names.length) {
+        return Response.json(
+          { error: 'A participant can only be included once.' },
+          { status: 400 }
+        );
+      }
+
+      const totalShares = body.participants.reduce(
+        (sum, person) =>
+          sum + Math.round(Number(person.share) * 100),
+        0
+      );
+
+      const totalAmount = Math.round(Number(body.amount) * 100);
+
+      if (totalShares !== totalAmount) {
+        return Response.json(
+          { error: 'Participant shares must add up to the total expense.' },
+          { status: 400 }
+        );
+      }
+
+      updates.participants = body.participants;
+
+      // Remove the old single-person fields
+      updateOperation.$unset = {
+        owed_by: 1,
+        is_paid: 1
+      };
+
+    } else {
+      // Preserve compatibility with older expenses
+      updates.owed_by = body.owed_by;
+      updates.is_paid = body.is_paid;
+    }
+
     const expense = await Expense.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          description: body.description,
-          paid_by: body.paid_by,
-          owed_by: body.owed_by,
-          amount: body.amount,
-          date: body.date,
-          is_paid: body.is_paid
-        }
-      },
+      updateOperation,
       { new: true, runValidators: true }
     );
 
@@ -60,7 +118,7 @@ export async function PUT(request) {
   }
 }
 
-// Update only the payment status
+// Update a participant's payment status
 export async function PATCH(request) {
   try {
     const id = getExpenseId(request);
@@ -75,11 +133,7 @@ export async function PATCH(request) {
 
     await connectDatabase();
 
-    const expense = await Expense.findByIdAndUpdate(
-      id,
-      { $set: { is_paid: body.is_paid } },
-      { new: true, runValidators: true }
-    );
+    const expense = await Expense.findById(id);
 
     if (!expense) {
       return Response.json(
@@ -88,12 +142,40 @@ export async function PATCH(request) {
       );
     }
 
+    if (Array.isArray(expense.participants) && expense.participants.length > 0) {
+      if (typeof body.participantName !== 'string') {
+        return Response.json(
+          { error: 'A participant name is required.' },
+          { status: 400 }
+        );
+      }
+
+      const participant = expense.participants.find(
+        person => person.name === body.participantName
+      );
+
+      if (!participant) {
+        return Response.json(
+          { error: 'Participant not found.' },
+          { status: 404 }
+        );
+      }
+
+      participant.is_paid = body.is_paid;
+    } else {
+      // Keep whole-expense payment updates for legacy records
+      expense.is_paid = body.is_paid;
+    }
+
+    await expense.save();
+
     return Response.json(expense);
 
   } catch (error) {
     console.error('Payment status error:', error.name);
 
     if (
+      error instanceof mongoose.Error.ValidationError ||
       error instanceof mongoose.Error.CastError ||
       error instanceof SyntaxError
     ) {

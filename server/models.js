@@ -1,6 +1,35 @@
 
 import mongoose from 'mongoose';
 
+const participantSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 50
+  },
+
+  share: {
+    type: Number,
+    required: true,
+    min: 0.01,
+    validate: {
+      validator: value =>
+        Number.isFinite(value) &&
+        Math.round(value * 100) === value * 100,
+      message: 'Share must have no more than two decimal places.'
+    }
+  },
+
+  is_paid: {
+    type: Boolean,
+    required: true,
+    default: false
+  }
+}, {
+  _id: false
+});
+
 const expenseSchema = new mongoose.Schema({
   description: {
     type: String,
@@ -16,11 +45,17 @@ const expenseSchema = new mongoose.Schema({
     maxlength: 50
   },
 
+  // Legacy field, retained for existing expenses
   owed_by: {
     type: String,
-    required: true,
+    required: false,
     trim: true,
     maxlength: 50
+  },
+
+  participants: {
+    type: [participantSchema],
+    default: undefined
   },
 
   amount: {
@@ -40,10 +75,11 @@ const expenseSchema = new mongoose.Schema({
     required: true
   },
 
+  // Legacy field, retained for existing expenses
   is_paid: {
     type: Boolean,
-    required: true,
-    default: false
+    required: false,
+    default: undefined
   }
 }, {
   collection: 'expenses',
