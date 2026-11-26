@@ -1,46 +1,76 @@
-# Resume builder demo
+# Tabloom
 
-A public, shared resume that demonstrates creating, reading, editing, and deleting work experiences with a native HTML form, a Netlify Function API, and MongoDB Atlas. Anyone who can access the site can read, add, edit, or delete entries. Use fictional data only; there is no login or abuse protection.
+Tabloom is a shared expense tracker that helps a group keep track of expenses and who still owes money. Users can add expenses, divide the cost between participants, and track each person's payment status.
+
+The application uses a native HTML, CSS, and JavaScript frontend, Vercel API routes, and MongoDB with Mongoose. Users can add, view, edit, and delete expenses, as well as view balances based on recorded expenses.
+
+The app uses a fixed group of users and does not include authentication. Anyone with access to the application can view and manage the shared expenses. Use fictional or non-sensitive data.
 
 ## Prerequisites
 
-- Node.js 22 or newer and npm.
-- A MongoDB Atlas cluster, a database user with permission to read and write the intended database, and network access configured to permit connections from your development environment and Netlify Functions.
-- A MongoDB connection string that includes the intended database name. See MongoDB's documentation for URL-encoding special characters in credentials.
+- Node.js and npm.
+- A MongoDB Atlas cluster and database user with permission to read and write to the intended database.
+- MongoDB network access configured to allow connections from your development environment and Vercel.
+- A MongoDB connection string for the intended database.
 
 ## Run locally
 
-1. Copy `.env.example` to `.env` (do not overwrite an existing file) and set `MONGODB_URI` to your Atlas connection string. Do not commit or share credentials.
-2. Run `npm install` and then `npm run dev`. The dev script runs the latest Netlify CLI through `npx`; the first run may ask to install it. Netlify CLI loads variables from `.env` for local development. Open the local URL printed by the CLI.
-3. Enter a fictional experience and submit it. The shared resume beneath the form reloads from MongoDB. Leave the end year blank for a current role. Use Edit to load an item into the form, Save changes to update it, or Cancel edit to return to adding. Use Delete and confirm to remove an item.
+1. Create a `.env.local` file in the project root and set `MONGODB_URI` to your MongoDB connection string. Do not commit or share your credentials.
+2. Install the project dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+4. Open the local URL provided by the development server.
+
+Use the application to add an expense, select the participants, and choose whether the person who paid is included in the split. The expense will be saved to MongoDB and displayed in the expense list.
+
+Each participant has an individual share and payment status. Users can mark a participant's share as paid or unpaid. Expenses can also be edited or deleted.
+
+## Features
+
+- Add, view, edit, and delete expenses.
+- Select a payer and participants for each expense.
+- Include or exclude the payer from the expense split.
+- Divide expenses between participants, including handling remaining cents.
+- Track each participant's payment status separately.
+- View personal and individual balances.
+- View the application as one of the fixed group members.
 
 ## API
 
-Each file in `netlify/functions` defines a native Netlify Function and its API path. The plural route reads the collection; the singular route creates, updates, and deletes items. Request and response bodies use JSON. The `resume_items` collection is chosen explicitly; no additional index is created.
+The API routes are located in the `api` directory and connect the frontend to MongoDB through Mongoose. Expense data is stored in the `expenses` collection.
 
-- `GET /api/resume-items` returns the retrieved MongoDB documents as an array, including MongoDB-generated fields.
-- `POST /api/resume-item` accepts `job_title`, `start_year`, optional `end_year`, `employer`, and `accomplishment`, and returns the created item with HTTP 201.
-- `PUT /api/resume-item?id=<id>` replaces the entire document with the supplied new json data and returns the updated item. Supply all required fields; omitting `end_year` removes its existing value.
-- `DELETE /api/resume-item?id=<id>` deletes an item and returns HTTP 200 with a JSON confirmation containing the deleted `id`.
+- `GET /api/expenses` retrieves expenses from the database.
+- `POST /api/expenses` creates a new expense.
+- `PUT /api/expenses/[id]` updates an existing expense.
+- `DELETE /api/expenses/[id]` deletes an expense.
 
-For PUT and DELETE, `id` is the MongoDB `_id` returned by GET or POST. A missing or malformed ID, invalid JSON, or validation failure returns HTTP 400; an ID that does not exist returns HTTP 404. Other failures return HTTP 500. Mongoose casts and validates item fields; years must be integers from 1900 to 2100. Required text fields are trimmed and limited to 100 characters for title and employer, and 1,000 for accomplishment.
+Each expense contains information such as its description, payer, amount, date, and participants. Participant records include each person's name, share, and payment status.
 
-PUT uses `findOneAndReplace` to validate and replace the document while preserving its existing `_id` when the request body omits it. Omitting `end_year` removes it. Replacement also removes other existing fields not supplied; a conflicting `_id` in the body is rejected.
+The API validates expense data before saving changes to the database. MongoDB generates an `_id` for each expense, which is used to identify the record when updating or deleting it.
 
-Example request body:
+## Deploy on Vercel
 
-```json
-{
-  "job_title": "Software Developer",
-  "start_year": 2020,
-  "end_year": 2023,
-  "employer": "Example Company",
-  "accomplishment": "Improved the onboarding process."
-}
-```
+1. Push the project to GitHub.
+2. Import the repository into Vercel.
+3. Configure the `MONGODB_URI` environment variable in Vercel's project settings.
+4. Ensure the environment variable is available to the application and API routes.
+5. Deploy the project.
 
-## Deploy on Netlify
+After deployment, add a test expense and reload the application to confirm that the data persists.
 
-Push the project to GitHub and connect the repository in the Netlify dashboard. The checked-in `netlify.toml` supplies the publish and function directories, and each function configures its own API path; no build command is needed. In Netlify's environment-variable settings, configure `MONGODB_URI` for the relevant deployment contexts with a scope available to Functions, then deploy. A local `.env` file is not deployed. Use a dedicated least-privileged database user, and ensure Atlas network access permits Netlify's function infrastructure. After deployment, submit fictional data and reload the page to confirm that it persists. Consider appropriate abuse controls before using this public API for anything beyond a demo.
+The application uses a shared MongoDB database, so changes made in the local and deployed versions may affect the same data. Be careful when testing create, update, or delete functionality.
 
-Automated tests are intentionally outside this demo's scope.
+## Limitations
+
+Tabloom does not currently include user authentication. The application uses a fixed group of users, and anyone with access can manage the shared expense records.
+
+Automated tests are outside the current scope of the project.
