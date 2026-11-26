@@ -388,13 +388,61 @@ function updateOutstanding() {
 
   personalBalance.replaceChildren(balanceHeading, balanceAmount);
 
+
   // Display individual balances relative to the selected user
   individualBalances.replaceChildren();
 
   for (const user of users) {
     if (user === selectedUser) continue;
 
-    const balanceCents = balances[user];
+    let balanceCents = 0;
+
+    for (const expense of expenses) {
+      if (expense.participants?.length) {
+        for (const person of expense.participants) {
+          if (person.is_paid) continue;
+
+          const shareCents = Math.round(
+            Number(person.share) * 100
+          );
+
+          // The selected user paid, so the other person owes them
+          if (
+            expense.paid_by === selectedUser &&
+            person.name === user
+          ) {
+            balanceCents += shareCents;
+          }
+
+          // The other person paid, so the selected user owes them
+          if (
+            expense.paid_by === user &&
+            person.name === selectedUser
+          ) {
+            balanceCents -= shareCents;
+          }
+        }
+      } else if (!expense.is_paid) {
+        // Support older expenses
+        const amountCents = Math.round(
+          Number(expense.amount) * 100
+        );
+
+        if (
+          expense.paid_by === selectedUser &&
+          expense.owed_by === user
+        ) {
+          balanceCents += amountCents;
+        }
+
+        if (
+          expense.paid_by === user &&
+          expense.owed_by === selectedUser
+        ) {
+          balanceCents -= amountCents;
+        }
+      }
+    }
 
     if (balanceCents === 0) continue;
 
@@ -406,13 +454,13 @@ function updateOutstanding() {
 
     const amount = document.createElement('span');
 
-    if (balanceCents < 0) {
+    if (balanceCents > 0) {
       amount.textContent =
-        `Owes you ${formatCurrency(Math.abs(balanceCents) / 100)}`;
+        `Owes you ${formatCurrency(balanceCents / 100)}`;
       amount.className = 'balance-positive';
     } else {
       amount.textContent =
-        `You owe ${formatCurrency(balanceCents / 100)}`;
+        `You owe ${formatCurrency(Math.abs(balanceCents) / 100)}`;
       amount.className = 'balance-negative';
     }
 
